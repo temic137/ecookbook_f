@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import Image from 'next/image'
-import { Camera, Upload, Copy, CheckCircle, Eye } from 'lucide-react'
+import { Camera, Upload, Copy, CheckCircle, Eye, X } from 'lucide-react'
 import {
   GlassCard,
   TechnicalButton
@@ -70,6 +70,10 @@ export default function HomePage() {
   const [schematicData, setSchematicData] = useState<Circuit | null>(null)
   const [schematicLoading, setSchematicLoading] = useState(false)
   const [selectedProjectIndex, setSelectedProjectIndex] = useState<number | null>(null)
+  const [showCamera, setShowCamera] = useState(false)
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -139,6 +143,54 @@ export default function HomePage() {
     }
   }
 
+  const openCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' } // Use back camera on mobile
+      })
+      setCameraStream(stream)
+      setShowCamera(true)
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error)
+      alert('Could not access camera. Please check permissions.')
+    }
+  }
+
+  const closeCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop())
+      setCameraStream(null)
+    }
+    setShowCamera(false)
+  }
+
+  const takePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current
+      const canvas = canvasRef.current
+      const ctx = canvas.getContext('2d')
+
+      if (ctx) {
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        ctx.drawImage(video, 0, 0)
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' })
+            setSelectedFile(file)
+            const url = URL.createObjectURL(blob)
+            setPreviewUrl(url)
+            closeCamera()
+          }
+        }, 'image/jpeg', 0.9)
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
       <div className="container mx-auto px-6 py-12 max-w-7xl">
@@ -158,31 +210,54 @@ export default function HomePage() {
               <h2 className="text-2xl font-semibold mb-6 text-slate-800">
                 Upload Component Image
               </h2>
-              
-              <div className="border-2 border-dashed border-black/30 rounded-lg p-8 transition-colors hover:border-black/50">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="cursor-pointer flex flex-col items-center space-y-4"
-                >
-                  <div className="p-4 bg-black/10 rounded-full">
-                    <Camera className="w-8 h-8 text-black" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-medium text-slate-700">
-                      Click to upload an image
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      PNG, JPG, JPEG up to 10MB
-                    </p>
-                  </div>
-                </label>
+
+              <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-6">
+                {/* File Upload Option */}
+                <div className="border-2 border-dashed border-black/30 rounded-lg p-6 transition-colors hover:border-black/50 w-full md:w-64">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="cursor-pointer flex flex-col items-center space-y-3"
+                  >
+                    <div className="p-3 bg-black/10 rounded-full">
+                      <Upload className="w-6 h-6 text-black" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">
+                        Upload from files
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        PNG, JPG, JPEG up to 10MB
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Camera Option */}
+                <div className="border-2 border-dashed border-black/30 rounded-lg p-6 transition-colors hover:border-black/50 w-full md:w-64">
+                  <button
+                    onClick={openCamera}
+                    className="flex flex-col items-center space-y-3 w-full"
+                  >
+                    <div className="p-3 bg-black/10 rounded-full">
+                      <Camera className="w-6 h-6 text-black" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">
+                        Take a photo
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Use your camera
+                      </p>
+                    </div>
+                  </button>
+                </div>
               </div>
 
               {previewUrl && (
@@ -350,6 +425,47 @@ export default function HomePage() {
           )}
         </div>
       </div>
+
+      {/* Camera Modal */}
+      {showCamera && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">Take Photo</h3>
+              <button
+                onClick={closeCamera}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="relative">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-64 bg-black rounded-lg object-cover"
+              />
+              <canvas
+                ref={canvasRef}
+                className="hidden"
+              />
+            </div>
+
+            <div className="flex justify-center mt-4">
+              <TechnicalButton
+                onClick={takePhoto}
+                className="px-6 py-2"
+              >
+                <Camera className="w-5 h-5 mr-2" />
+                Take Photo
+              </TechnicalButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
