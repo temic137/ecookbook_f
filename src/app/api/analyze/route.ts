@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const backendFormData = new FormData();
     backendFormData.append('file', image);
 
-    const backendResponse = await fetch('http://localhost:8000/identify-components', {
+    const backendResponse = await fetch('https://ecookbook-b.onrender.com/identify-components', {
       method: 'POST',
       body: backendFormData,
     });

@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const response = await fetch('http://localhost:8000/generate-schematic', {
+    const response = await fetch('https://ecookbook-b.onrender.com/generate-schematic', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
