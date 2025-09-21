@@ -798,14 +798,17 @@ export default function HomePage() {
 
               {/* Preview */}
               {previewUrl && (
-                <div className="mt-6">
-                  <Image
-                    src={previewUrl}
-                    alt="Preview"
-                    width={400}
-                    height={300}
-                    className="max-w-md mx-auto rounded-lg shadow-lg"
-                  />
+                <div className="mt-4 sm:mt-6">
+                  <div className="relative max-w-full overflow-hidden rounded-lg shadow-lg">
+                    <Image
+                      src={previewUrl}
+                      alt="Preview"
+                      width={400}
+                      height={300}
+                      className="w-full h-auto max-h-48 sm:max-h-64 md:max-h-80 object-contain mx-auto"
+                      style={{ maxWidth: '100%', height: 'auto' }}
+                    />
+                  </div>
                 </div>
               )}
 
